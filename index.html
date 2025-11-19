@@ -352,42 +352,47 @@
         }
 
         function renderPage(num) {
-            pageRendering = true;
+            // আপনার renderPage বা সমমানের ফাংশনের ভেতরে এই অংশটুকু ব্যবহার করুন
+
+async function renderPage(num) {
+    // ... আপনার আগের কোড (যেমন page fetch করা) ...
+    const page = await pdfDoc.getPage(num);
+    
+    // ১. ভিউপোর্ট নেওয়া (scale ভেরিয়েবল আপনার কোডে ডিফাইন করা থাকতে হবে, যেমন: let scale = 1.5;)
+    const viewport = page.getViewport({ scale: scale });
+
+    // --- BLUR FIX CODE START ---
+    const canvas = document.getElementById('pdf-render');
+    const ctx = canvas.getContext('2d');
+
+    // ২. ডিভাইসের পিক্সেল ডেনসিটি বের করা
+    const outputScale = window.devicePixelRatio || 1;
+
+    // ৩. ক্যানভাসের ইন্টারনাল রেজোলিউশন বাড়ানো (High Quality)
+    canvas.width = Math.floor(viewport.width * outputScale);
+    canvas.height = Math.floor(viewport.height * outputScale);
+
+    // ৪. CSS দিয়ে ভিজ্যুয়াল সাইজ ঠিক রাখা (যাতে স্ক্রিনে বিশাল বড় না হয়ে যায়)
+    canvas.style.width = Math.floor(viewport.width) + "px";
+    canvas.style.height = Math.floor(viewport.height) + "px";
+
+    // ৫. রেন্ডার করার সময় ট্রান্সফর্ম অ্যাপ্লাই করা
+    const transform = outputScale !== 1 
+        ? [outputScale, 0, 0, outputScale, 0, 0] 
+        : null;
+
+    const renderContext = {
+        canvasContext: ctx,
+        transform: transform, // এই লাইনটি সবচেয়ে গুরুত্বপূর্ণ
+        viewport: viewport
+    };
+    // --- BLUR FIX CODE END ---
+
+    await page.render(renderContext).promise;
+    
+    // ... বাকি কাজ (যেমন লোডার বন্ধ করা) ...
+}
             
-            pdfDoc.getPage(num).then(function(page) {
-                const container = document.getElementById('pdf-container');
-                // কন্টেইনারের আসল প্রস্থ বের করা (প্যাডিং বাদ দিয়ে)
-                const containerWidth = container.clientWidth - 30; 
-                
-                // ১. পেজের ডিফল্ট ভিউপোর্ট নেওয়া
-                const unscaledViewport = page.getViewport({scale: 1});
-                // ২. কন্টেইনারের সাথে ফিট করার জন্য স্কেল হিসাব করা
-                const scale = containerWidth / unscaledViewport.width;
-
-                // ৩. High DPI বা Retina স্ক্রিনের জন্য পিক্সেল রেশিও চেক করা
-                const outputScale = window.devicePixelRatio || 1;
-
-                // ৪. আসল ভিউপোর্ট তৈরি করা (স্কেল অনুযায়ী)
-                const viewport = page.getViewport({scale: scale});
-
-                // ৫. ক্যানভাসের ইন্টারনাল রেজোলিউশন বাড়ানো (High Quality)
-                canvas.width = Math.floor(viewport.width * outputScale);
-                canvas.height = Math.floor(viewport.height * outputScale);
-
-                // ৬. CSS দিয়ে ডিসপ্লে সাইজ ঠিক রাখা (যাতে স্ক্রিনের বাইরে না যায়)
-                canvas.style.width = Math.floor(viewport.width) + "px";
-                canvas.style.height = Math.floor(viewport.height) + "px";
-
-                // ৭. রেন্ডার করার সময় স্কেল ট্রান্সফর্ম করা (যাতে ব্লার না হয়)
-                const transform = outputScale !== 1 
-                  ? [outputScale, 0, 0, outputScale, 0, 0] 
-                  : null;
-
-                const renderContext = {
-                    canvasContext: ctx,
-                    transform: transform,
-                    viewport: viewport
-                };
                 
                 const renderTask = page.render(renderContext);
 
