@@ -136,6 +136,47 @@
                     <!-- Loader -->
                     <div id="loader" class="absolute inset-0 flex items-center justify-center bg-gray-800 z-20">
                         <i class="ph ph-spinner animate-spin text-4xl text-blue-500"></i>
+                    <!-- 1. HTML অংশ: যেখানে ইনপুট বক্স এবং বাটন দেখাতে চান সেখানে পেস্ট করুন -->
+<div class="page-jump-controls" style="display: flex; gap: 5px; align-items: center; justify-content: center; margin: 10px 0;">
+    <input type="number" id="jumpToPageInput" placeholder="Page" min="1" 
+           style="padding: 5px; width: 60px; border: 1px solid #ddd; border-radius: 4px;">
+    
+    <button onclick="jumpToSpecificPage()" 
+            style="padding: 5px 10px; background-color: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer;">
+        Go
+    </button>
+</div>
+
+<!-- 2. JavaScript অংশ: এটি আপনার স্ক্রিপ্টের শেষে বা </body> ট্যাগের আগে পেস্ট করুন -->
+<script>
+    function jumpToSpecificPage() {
+        // ইনপুট বক্স থেকে নাম্বার নেওয়া
+        const input = document.getElementById('jumpToPageInput');
+        const desiredPage = parseInt(input.value);
+
+        // চেক করা হচ্ছে যে PDF লোড হয়েছে কিনা এবং পেজ নাম্বার সঠিক কিনা
+        // 'pdfDoc' হলো আপনার গ্লোবাল ভেরিয়েবল (যদি নাম ভিন্ন হয় তবে পরিবর্তন করুন)
+        if (typeof pdfDoc !== 'undefined' && pdfDoc) {
+            if (desiredPage >= 1 && desiredPage <= pdfDoc.numPages) {
+                
+                // বর্তমান পেজ নম্বর আপডেট করা (আপনার কোডের ভেরিয়েবলের নাম অনুযায়ী 'pageNum' পরিবর্তন করতে হতে পারে)
+                pageNum = desiredPage;
+
+                // পেজ রেন্ডার ফাংশন কল করা (আপনার ফাংশনের নাম 'renderPage' না হলে এটি পরিবর্তন করুন)
+                renderPage(pageNum); 
+                
+                // ইনপুট ফিল্ড ক্লিয়ার করা (অপশনাল)
+                input.value = '';
+            } else {
+                alert(`অনুগ্রহ করে 1 থেকে ${pdfDoc.numPages} এর মধ্যে একটি নম্বর দিন।`);
+            }
+        } else {
+            console.error("PDF Document not loaded or variable name mismatch.");
+        }
+    }
+</script>
+
+                        
                     </div>
                 </div>
             </div>
@@ -144,6 +185,7 @@
                 <button onclick="prevPage()" class="p-2 hover:bg-gray-700 rounded-full"><i class="ph ph-arrow-left"></i></button>
                 <span class="text-sm font-mono"><span id="nav-page-num">1</span> of <span id="nav-page-count">--</span></span>
                 <button onclick="nextPage()" class="p-2 hover:bg-gray-700 rounded-full"><i class="ph ph-arrow-right"></i></button>
+                
             </div>
         </div>
     </div>
