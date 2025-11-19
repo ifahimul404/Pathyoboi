@@ -3,185 +3,115 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>পাঠ্যবই - HD রিডার</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <title>পাঠ্যবই - হোম</title>
     <style>
         body {
-            background-color: #525659;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f4;
             margin: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            font-family: sans-serif;
-            overflow-x: hidden; /* হরাইজন্টাল স্ক্রল বন্ধ */
+            padding: 0;
         }
-        .toolbar {
-            background: #333;
+        header {
+            background-color: #333;
             color: white;
-            padding: 10px;
-            position: sticky;
-            top: 0;
-            width: 100%;
+            padding: 20px;
             text-align: center;
-            z-index: 100;
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
-        button {
-            padding: 8px 15px;
-            background: #ff9800;
-            border: none;
-            color: white;
-            font-weight: bold;
-            border-radius: 4px;
+        h1 { margin: 0; }
+        
+        /* বইয়ের গ্রিড লেআউট */
+        .book-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 20px;
+            gap: 30px;
+            max-width: 1200px;
+            margin: auto;
+        }
+        
+        /* প্রতিটি বইয়ের কার্ড ডিজাইন */
+        .book-card {
+            background: white;
+            width: 200px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+            transition: transform 0.3s;
+            text-align: center;
             cursor: pointer;
         }
-        button:disabled { background: #777; cursor: not-allowed; }
-        
-        /* ক্যানভাস স্টাইল */
-        #canvas-container {
-            margin-top: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 0 10px black;
-            line-height: 0; /* ক্যানভাসের নিচে ফাঁকা জায়গা দূর করতে */
-        }
-        canvas {
-            direction: ltr;
-            max-width: 100%;
+        .book-card:hover {
+            transform: translateY(-10px); /* মাউস নিলে একটু উপরে উঠবে */
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
         }
         
-        /* এরর মেসেজ */
-        #error-message { color: #ff4d4d; background: #ffe6e6; padding: 10px; margin: 10px; border: 1px solid red; display: none; text-align: center; width: 90%; border-radius: 5px;}
+        /* বইয়ের কভার ইমেজ */
+        .book-cover {
+            width: 100%;
+            height: 280px;
+            object-fit: cover;
+            border-bottom: 1px solid #eee;
+        }
+        
+        /* বইয়ের নাম ও বাটন */
+        .book-info { padding: 15px; }
+        .book-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+            display: block;
+        }
+        .read-btn {
+            background-color: #ff9800;
+            color: white;
+            text-decoration: none;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            display: inline-block;
+        }
+        .read-btn:hover { background-color: #e68900; }
+
     </style>
 </head>
-<body oncontextmenu="return false;">
+<body>
 
-    <div class="toolbar">
-        <button id="prev">Previous</button>
-        <span style="padding-top: 8px; font-size: 0.9rem;">
-            Page: <span id="page_num">--</span> / <span id="page_count">--</span>
-        </span>
-        <button id="next">Next</button>
-    </div>
+    <header>
+        <h1>📚 পাঠ্যবই লাইব্রেরি</h1>
+        <p>আপনার পছন্দের বইটি সিলেক্ট করুন</p>
+    </header>
+    
+    
 
-    <div id="error-message"></div>
+    <div class="book-container">
+        
+        <div class="book-card" onclick="openBook('https://cdn.jsdelivr.net/gh/ifahimul404/Pathyoboi@main/Practice-Sheet-1.pdf')">
+            <img src="https://via.placeholder.com/200x280?text=Book+Cover+1" class="book-cover" alt="Book 1">
+            <div class="book-info">
+                <span class="book-title">প্র্যাকটিস শিট ১</span>
+                <a href="#" class="read-btn">পড়ুন</a>
+            </div>
+        </div>
 
-    <div id="canvas-container">
-        <canvas id="pdf-render"></canvas>
+        <div class="book-card" onclick="openBook('ANOTHER_PDF_LINK_HERE')">
+            <img src="https://via.placeholder.com/200x280?text=Book+Cover+2" class="book-cover" alt="Book 2">
+            <div class="book-info">
+                <span class="book-title">বাংলা ব্যাকরণ</span>
+                <a href="#" class="read-btn">পড়ুন</a>
+            </div>
+        </div>
+
     </div>
 
     <script>
-        // আপনার GitHub এর লিংক (নিশ্চিত করুন এটি ঠিক আছে)
-        const url = 'https://cdn.jsdelivr.net/gh/ifahimul404/Pathyoboi@main/Practice-Sheet-1.pdf';
-
-        const pdfjsLib = window['pdfjs-dist/build/pdf'];
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
-
-        let pdfDoc = null,
-            pageNum = 1,
-            pageRendering = false,
-            pageNumPending = null,
-            // বেসিক স্কেল বাড়ানো হয়েছে যাতে পিসিতেও ক্লিয়ার থাকে
-            scale = 2.0, 
-            canvas = document.getElementById('pdf-render'),
-            ctx = canvas.getContext('2d');
-
-        /**
-         * হাই কোয়ালিটি রেন্ডার ফাংশন
-         */
-        function renderPage(num) {
-            pageRendering = true;
-            
-            pdfDoc.getPage(num).then(function(page) {
-                // ১. ডিভাইসের পিক্সেল রেশিও বের করা (মোবাইলের জন্য এটি ২ বা ৩ হতে পারে)
-                const outputScale = window.devicePixelRatio || 1;
-
-                // ২. স্ক্রিনের সাইজ অনুযায়ী ভিউপোর্ট ঠিক করা
-                let viewport = page.getViewport({scale: scale});
-                
-                // মোবাইল স্ক্রিন হলে স্কেল অটো অ্যাডজাস্ট করবে (রেস্পন্সিভ)
-                if(window.innerWidth < 600) {
-                    // মোবাইলে স্ক্রিন উইডথ অনুযায়ী স্কেল সেট করা
-                    const containerWidth = window.innerWidth - 20; // ১০px মার্জিন বাদ দিয়ে
-                    const unscaledViewport = page.getViewport({scale: 1});
-                    const mobileScale = containerWidth / unscaledViewport.width;
-                    viewport = page.getViewport({scale: mobileScale});
-                }
-
-                // ৩. ক্যানভাসের ইন্টারনাল রেজোলিউশন বাড়ানো (Sharpness এর জন্য আসল ম্যাজিক এখানে)
-                canvas.width = Math.floor(viewport.width * outputScale);
-                canvas.height = Math.floor(viewport.height * outputScale);
-
-                // ৪. CSS দিয়ে ক্যানভাসকে স্ক্রিন সাইজে ফিট করা
-                canvas.style.width = Math.floor(viewport.width) + "px";
-                canvas.style.height = Math.floor(viewport.height) + "px";
-
-                // ৫. রেন্ডার করার সময় স্কেল ট্রান্সফর্ম করা
-                const transform = outputScale !== 1 
-                    ? [outputScale, 0, 0, outputScale, 0, 0] 
-                    : null;
-
-                const renderContext = {
-                    canvasContext: ctx,
-                    transform: transform,
-                    viewport: viewport
-                };
-                
-                const renderTask = page.render(renderContext);
-
-                renderTask.promise.then(function() {
-                    pageRendering = false;
-                    if (pageNumPending !== null) {
-                        renderPage(pageNumPending);
-                        pageNumPending = null;
-                    }
-                });
-            });
-
-            document.getElementById('page_num').textContent = num;
-            
-            // বাটন ডিজেবল লজিক
-            document.getElementById('prev').disabled = (num <= 1);
-            // pdfDoc লোড হলে পরের বাটন চেক হবে
-            if(pdfDoc) {
-               document.getElementById('next').disabled = (num >= pdfDoc.numPages);
-            }
+        function openBook(pdfLink) {
+            // ভিউয়ার পেজে নিয়ে যাবে এবং সাথে লিংকটি পাস করবে
+            window.location.href = 'viewer.html?file=' + encodeURIComponent(pdfLink);
         }
-
-        function queueRenderPage(num) {
-            if (pageRendering) {
-                pageNumPending = num;
-            } else {
-                renderPage(num);
-            }
-        }
-
-        document.getElementById('prev').addEventListener('click', () => {
-            if (pageNum <= 1) return;
-            pageNum--;
-            queueRenderPage(pageNum);
-        });
-
-        document.getElementById('next').addEventListener('click', () => {
-            if (pageNum >= pdfDoc.numPages) return;
-            pageNum++;
-            queueRenderPage(pageNum);
-        });
-
-        // লোড শুরু
-        pdfjsLib.getDocument(url).promise.then(function(pdfDoc_) {
-            pdfDoc = pdfDoc_;
-            document.getElementById('page_count').textContent = pdfDoc.numPages;
-            renderPage(pageNum);
-        }, function (reason) {
-            // এরর হ্যান্ডলিং
-            const errorDiv = document.getElementById('error-message');
-            errorDiv.style.display = 'block';
-            errorDiv.innerHTML = "<b>PDF লোড হয়নি!</b><br>" + reason.message;
-            console.error('Error:', reason);
-        });
     </script>
+
 </body>
 </html>
