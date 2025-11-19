@@ -414,4 +414,133 @@
         }
 
         // --- READER LOGIC ---
-        
+        function openReader(bookId) {
+            const book = books.find(b => b.id === bookId);
+            if (!book) return;
+            
+            currentBook = book;
+            dom.readerTitle.textContent = book.title;
+            
+            // Setup TOC
+            dom.tocList.innerHTML = '';
+            book.chapters.forEach(chap => {
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm text-gray-800 dark:text-gray-200 border-b border-gray-100 dark:border-gray-700 last:border-0 flex justify-between";
+                btn.innerHTML = `<span>${chap.title}</span><span class="text-xs text-gray-400 bg-gray-200 dark:bg-gray-900 px-2 py-0.5 rounded">P. ${chap.page}</span>`;
+                btn.onclick = () => loadPdfPage(chap.page);
+                dom.tocList.appendChild(btn);
+            });
+
+            // Load PDF
+            loadPdfPage(1);
+
+            // Switch View
+            dom.homeView.classList.add('hidden');
+            dom.readerView.classList.remove('hidden');
+            dom.readerView.classList.add('flex');
+        }
+
+        function closeReader() {
+            dom.pdfIframe.src = ""; // Stop loading
+            dom.readerView.classList.add('hidden');
+            dom.readerView.classList.remove('flex');
+            dom.homeView.classList.remove('hidden');
+            
+            // Exit Fullscreen if active
+            if (document.fullscreenElement) {
+                document.exitFullscreen();
+            }
+        }
+
+        function loadPdfPage(page) {
+            if (!currentBook) return;
+            // Security parameters: #toolbar=0&navpanes=0&scrollbar=0
+            dom.pdfIframe.src = `${currentBook.pdfUrl}#page=${page}&toolbar=0&navpanes=0&scrollbar=0&view=FitH`;
+            dom.tocMenu.classList.add('hidden'); // Close TOC
+            dom.tocIcon.classList.remove('rotate-180');
+        }
+
+        function toggleToc() {
+            const isHidden = dom.tocMenu.classList.contains('hidden');
+            if (isHidden) {
+                dom.tocMenu.classList.remove('hidden');
+                dom.tocIcon.classList.add('rotate-180');
+            } else {
+                dom.tocMenu.classList.add('hidden');
+                dom.tocIcon.classList.remove('rotate-180');
+            }
+        }
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                dom.readerView.requestFullscreen().catch(err => {
+                    alert(`Error attempting to enable full-screen mode: ${err.message}`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // Update Fullscreen Icon
+        document.addEventListener('fullscreenchange', () => {
+            if (document.fullscreenElement) {
+                dom.fsIcon.classList.replace('ph-corners-out', 'ph-corners-in');
+            } else {
+                dom.fsIcon.classList.replace('ph-corners-in', 'ph-corners-out');
+            }
+        });
+
+        // Smart Header (Scroll/Wheel logic)
+        dom.readerView.addEventListener('wheel', (e) => {
+            if (e.deltaY > 0) {
+                // Scroll Down -> Hide
+                dom.readerHeader.classList.add('-translate-y-full');
+                dom.tocMenu.classList.add('hidden'); // Also close TOC
+            } else {
+                // Scroll Up -> Show
+                dom.readerHeader.classList.remove('-translate-y-full');
+            }
+        });
+
+        // --- SWIPE LOGIC (Sidebar) ---
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        function setupSwipe() {
+            dom.sidebar.addEventListener('touchstart', e => {
+                touchStartX = e.changedTouches[0].screenX;
+            });
+
+            dom.sidebar.addEventListener('touchend', e => {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipe();
+            });
+        }
+
+        function handleSwipe() {
+            // Detect left swipe (close sidebar)
+            if (touchStartX - touchEndX > 50) {
+                toggleSidebar(false);
+            }
+        }
+
+        // --- SECURITY ---
+        function setupSecurity() {
+            // Disable Right Click
+            document.addEventListener('contextmenu', event => event.preventDefault());
+
+            // Disable Shortcuts (Ctrl+S, Ctrl+P, F12)
+            document.addEventListener('keydown', function(e) {
+                if ((e.ctrlKey && (e.key === 'p' || e.key === 's' || e.key === 'u')) || e.key === 'F12') {
+                    e.preventDefault();
+                }
+            });
+        }
+
+        // Run Init
+        init();
+
+    </script>
+</body>
+</html>
+
