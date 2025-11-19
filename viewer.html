@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>পাঠ্যবই রিডার</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <style>
+        body {
+            background-color: #525659;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none; /* টেক্সট সিলেক্ট বন্ধ */
+            -webkit-user-select: none;
+        }
+
+        /* টুলবার ডিজাইন */
+        .toolbar {
+            background: #333;
+            color: white;
+            padding: 10px;
+            position: sticky;
+            top: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+            z-index: 1000;
+        }
+
+        button {
+            padding: 8px 16px;
+            background: #ff9800;
+            border: none;
+            color: white;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background: #e68900; }
+        button:disabled { background: #777; cursor: not-allowed; }
+
+        /* হোম বাটন (Back) */
+        .home-btn {
+            background: #444;
+            margin-right: auto; /* বাম পাশে রাখবে */
+            margin-left: 10px;
+        }
+        .home-btn:hover { background: #555; }
+
+        /* পেজ কাউন্টার */
+        .page-info {
+            font-size: 0.9rem;
+            min-width: 80px;
