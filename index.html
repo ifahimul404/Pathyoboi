@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>পাঠ্যবই - অনলাইন রিডার</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            background-color: #525659; /* ডার্ক ব্যাকগ্রাউন্ড */
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            user-select: none; /* টেক্সট সিলেক্ট করা যাবে না */
+        }
+        /* টুলবার ডিজাইন */
+        .toolbar {
+            background: #333;
+            color: white;
+            width: 100%;
+            padding: 10px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        }
+        button {
+            background: #ff9800;
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            margin: 0 5px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        button:hover { background: #e68900; }
+        button:disabled { background: #888; cursor: not-allowed; }
+        
+        /* PDF যেখানে দেখাবে */
+        #pdf-render {
+            border: 1px solid #000;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+            max-width: 95%; /* মোবাইলে যেন কেটে না যায় */
+        }
+        
+        /* পেজ নাম্বার ডিজাইন */
+        #page-num-display {
+            font-size: 14px;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body oncontextmenu="return false;">
+
+    <div class="toolbar">
+        <button id="prev">পূর্ববর্তী</button>
+        <button id="next">পরবর্তী</button>
+        <span id="page-num-display">
+            পৃষ্ঠা: <span id="page_num"></span> / <span id="page_count"></span>
+        </span>
+    </div>
+
+    <canvas id="pdf-render"></canvas>
+
+    <script>
+        // আপনার পিডিএফ ফাইলের নাম এখানে দিন
+        const url = 'https://cdn.jsdelivr.net/gh/ifahimul404/Pathyoboi@main/Practice-Sheet-1.pdf';
+
+        let pdfDoc = null,
+            pageNum = 1,
+            pageRendering = false,
+            pageNumPending = null,
+            scale = 1.5, // জুম লেভেল (প্রয়োজনে বাড়াতে বা কমাতে পারেন)
+            canvas = document.getElementById('pdf-render'),
+            ctx = canvas.getContext('2d');
+
+        // PDF.js ওয়ার্কার সেটআপ
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+        /**
+         * পেজ রেন্ডার করার ফাংশন
+         */
+        function renderPage(num) {
+            pageRendering = true;
+            
+            // পেজ আনছি
+            pdfDoc.getPage(num).then(function(page) {
+                // মোবাইলের জন্য অটো সাইজ ঠিক করা
+                var viewport = page.getViewport({scale: scale});
+                
+                // যদি মোবাইল হয়, স্কেল একটু কমাবে
+                if(window.innerWidth < 600) {
+                     viewport = page.getViewport({scale: 0.6});
+                }
+
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+
+                // রেন্ডার করা হচ্ছে
+                var renderContext = {
+                    canvasContext: ctx,
+                    viewport: viewport
+                };
+                var renderTask = page.render(renderContext);
+
+                // রেন্ডার শেষ হলে
+                renderTask.promise.then(function() {
+                    pageRendering = false;
+                    if (pageNumPending !== null) {
+                        renderPage(pageNumPending);
+                        pageNumPending = null;
+                    }
+                });
+            });
+
+            // পেজ কাউন্টার আপডেট
+            document.getElementById('page_num').textContent = num;
+            
+            // বাটন কন্ডিশন
+            document.getElementById('prev').disabled = num <= 1;
+            document.getElementById('next').disabled = num >= pdfDoc.numPages;
+        }
+
+        /**
+         * পেন্ডিং পেজ রেন্ডার
+         */
+        function queueRenderPage(num) {
+            if (pageRendering) {
+                pageNumPending = num;
+            } else {
+                renderPage(num);
+            }
+        }
+
+        /**
+         * আগের পেজে যাওয়া
+         */
+        function onPrevPage() {
+            if (pageNum <= 1) {
+                return;
+            }
+            pageNum--;
+            queueRenderPage(pageNum);
+        }
+        document.getElementById('prev').addEventListener('click', onPrevPage);
+
+        /**
+         * পরের পেজে যাওয়া
+         */
+        function onNextPage() {
+            if (pageNum >= pdfDoc.numPages) {
+                return;
+            }
+            pageNum++;
+            queueRenderPage(pageNum);
+        }
+        document.getElementById('next').addEventListener('click', onNextPage);
+
+        /**
+         * ডকুমেন্ট লোড করা
+         */
+        pdfjsLib.getDocument(url).promise.then(function(pdfDoc_) {
+            pdfDoc = pdfDoc_;
+            document.getElementById('page_count').textContent = pdfDoc.numPages;
+
+            // প্রথম পেজ রেন্ডার
+            renderPage(pageNum);
+        });
+    </script>
+</body>
+</html>
