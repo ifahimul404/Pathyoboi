@@ -4,162 +4,98 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>পাঠ্যবই রিডার</title>
-    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.min.js"></script>
-    
     <style>
-        body {
-            background-color: #525659;
+        body, html {
             margin: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            font-family: sans-serif;
+            padding: 0;
+            height: 100%;
+            background-color: #333;
+            overflow: hidden; /* স্ক্রল বার লুকানো */
         }
 
         /* টুলবার */
         .toolbar {
-            background: #333;
-            color: white;
-            padding: 10px;
-            position: sticky;
+            height: 50px;
+            background: #222;
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+            position: fixed;
             top: 0;
             width: 100%;
-            display: flex;
-            justify-content: center;
-            gap: 10px;
             z-index: 100;
         }
-        button {
-            padding: 8px 15px;
+
+        .home-btn {
             background: #ff9800;
             border: none;
             color: white;
-            border-radius: 4px;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-weight: bold;
             cursor: pointer;
-        }
-        
-        /* ক্যানভাস (বই) */
-        canvas {
-            display: block;
-            margin: 20px auto;
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
-            background: white; 
-            max-width: 95%;
+            text-decoration: none;
+            font-family: sans-serif;
         }
 
-        /* ডিবাগ বক্স (সমস্যা দেখার জন্য) */
-        #debug-log {
-            width: 90%;
-            background: black;
-            color: #00ff00;
-            font-family: monospace;
-            padding: 10px;
-            margin-top: 20px;
-            border-radius: 5px;
-            font-size: 12px;
-            border: 1px solid #00ff00;
-            white-space: pre-wrap;
-            display: block; /* সমস্যা মিটে গেলে এটি none করে দেব */
+        /* পিডিএফ ভিউয়ার */
+        #pdf-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            margin-top: 50px; /* টুলবারের জন্য জায়গা ছাড়া */
+            background: white;
+        }
+
+        /* লোডার মেসেজ */
+        #loader {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-family: sans-serif;
+            z-index: -1;
+        }
+        
+        /* নিরাপত্তা লেয়ার (ডাউনলোড বাটন ঢাকতে) */
+        .security-overlay {
+            position: fixed;
+            top: 50px;
+            right: 0;
+            width: 60px; /* পপ-আউট বাটন ঢাকার জন্য */
+            height: 60px;
+            background: transparent; /* দেখা যাবে না কিন্তু ক্লিক আটকাবে */
+            z-index: 200;
         }
     </style>
 </head>
-<body oncontextmenu="return false;">
+<body>
 
     <div class="toolbar">
-        <button onclick="window.history.back()">⬅ Home</button>
-        <button id="prev">Previous</button>
-        <span style="color:white; padding-top:5px;">Page: <span id="page_num">--</span> / <span id="page_count">--</span></span>
-        <button id="next">Next</button>
+        <a href="index.html" class="home-btn">⬅ Home</a>
     </div>
 
-    <div id="debug-log">Status: Initializing...</div>
+    <div id="loader">বই লোড হচ্ছে...</div>
 
-    <canvas id="pdf-render"></canvas>
+    <iframe id="pdf-frame" src=""></iframe>
+
+    <div class="security-overlay"></div>
 
     <script>
-        // লগ ফাংশন (স্ক্রিনে দেখানোর জন্য)
-        function log(msg) {
-            const logBox = document.getElementById('debug-log');
-            logBox.innerHTML += "\n> " + msg;
-            console.log(msg);
-        }
-
-        // ১. লিংক ধরা
+        // ১. URL থেকে লিংক নেওয়া
         const urlParams = new URLSearchParams(window.location.search);
-        const url = urlParams.get('file');
+        const fileLink = urlParams.get('file');
 
-        log("Checking URL...");
-        
-        if (!url) {
-            log("ERROR: কোনো লিংক পাওয়া যায়নি। হোম পেজ থেকে ক্লিক করুন।");
+        if (fileLink) {
+            // Google Docs Viewer ব্যবহার করে ফাইল দেখানো হচ্ছে
+            const googleViewerUrl = "https://docs.google.com/viewer?url=" + encodeURIComponent(fileLink) + "&embedded=true";
+            document.getElementById('pdf-frame').src = googleViewerUrl;
         } else {
-            log("URL Found: " + url);
-            startLoading(url);
+            document.getElementById('loader').innerText = "কোনো ফাইল পাওয়া যায়নি!";
         }
+    </script>
 
-        // PDF.js সেটআপ
-        const pdfjsLib = window['pdfjs-dist/build/pdf'];
-        // ওয়ার্কার ফাইল একই ভার্সনের হতে হবে
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.worker.min.js';
-
-        let pdfDoc = null,
-            pageNum = 1,
-            pageRendering = false,
-            pageNumPending = null,
-            scale = 1.5,
-            canvas = document.getElementById('pdf-render'),
-            ctx = canvas.getContext('2d');
-
-        function startLoading(pdfUrl) {
-            log("Starting PDF load...");
-            
-            const loadingTask = pdfjsLib.getDocument(pdfUrl);
-            
-            loadingTask.promise.then(function(pdfDoc_) {
-                pdfDoc = pdfDoc_;
-                log("Success! PDF Loaded. Total pages: " + pdfDoc.numPages);
-                document.getElementById('page_count').textContent = pdfDoc.numPages;
-                document.getElementById('debug-log').style.display = 'none'; // লোড হলে লগ বক্স লুকিয়ে ফেলবে
-                renderPage(pageNum);
-            }).catch(function(error) {
-                log("CRITICAL ERROR: " + error.message);
-                log("Tip: Check if the PDF link works correctly in a browser.");
-            });
-        }
-
-        function renderPage(num) {
-            pageRendering = true;
-            pdfDoc.getPage(num).then(function(page) {
-                // স্কেল ঠিক করা
-                var viewport = page.getViewport({scale: scale});
-                if(window.innerWidth < 600) {
-                     viewport = page.getViewport({scale: (window.innerWidth - 20) / page.getViewport({scale:1}).width});
-                }
-                
-                canvas.height = viewport.height;
-                canvas.width = viewport.width;
-
-                var renderContext = {
-                    canvasContext: ctx,
-                    viewport: viewport
-                };
-                var renderTask = page.render(renderContext);
-
-                renderTask.promise.then(function() {
-                    pageRendering = false;
-                    if (pageNumPending !== null) {
-                        renderPage(pageNumPending);
-                        pageNumPending = null;
-                    }
-                });
-            });
-
-            document.getElementById('page_num').textContent = num;
-            document.getElementById('prev').disabled = num <= 1;
-            document.getElementById('next').disabled = num >= pdfDoc.numPages;
-        }
-
-        // বাটন ইভেন্ট
-        document.getElementById('prev').addEventListener('click', () => {
-            if (pageNum <= 1) return;
+</body>
+</html>
