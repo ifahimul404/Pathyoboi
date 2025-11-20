@@ -349,74 +349,56 @@
                 alert("PDF লোড করা যাচ্ছে না।");
             });
         }
-        async function renderPage(num) {
-    pageRendering = true;
+        function renderPage(num) {
+            pageRendering = true;
+            pdfDoc.getPage(num).then(function(page) {
+                const container = document.getElementById('pdf-container');
+                // কন্টেইনারের আসল প্রস্থ বের করা (প্যাডিং বাদ দিয়ে)
+                const containerWidth = container.clientWidth - 30; 
+                
+                // ১. পেজের ডিফল্ট ভিউপোর্ট নেওয়া
+                const unscaledViewport = page.getViewport({scale: 1});
+                // ২. কন্টেইনারের সাথে ফিট করার জন্য স্কেল হিসাব করা
+                const scale = containerWidth / unscaledViewport.width;
 
-    try {
-        // ১. পেজ ফেচ করা
-        const page = await pdfDoc.getPage(num);
+                // ৩. High DPI বা Retina স্ক্রিনের জন্য পিক্সেল রেশিও চেক করা
+                const outputScale = window.devicePixelRatio || 1;
 
-        // ২. কন্টেইনার এবং ক্যানভাস এলিমেন্ট ধরা
-        const container = document.getElementById('pdf-container');
-        const canvas = document.getElementById('pdf-render');
-        const ctx = canvas.getContext('2d');
+                // ৪. আসল ভিউপোর্ট তৈরি করা (স্কেল অনুযায়ী)
+                const viewport = page.getViewport({scale: scale});
 
-        // ৩. কন্টেইনারের সাইজ অনুযায়ী স্কেল নির্ধারণ করা (Responsive Logic)
-        // -30 দেওয়া হয়েছে প্যাডিং এর জন্য
-        const containerWidth = container.clientWidth - 30; 
-        const unscaledViewport = page.getViewport({ scale: 1 });
-        
-        // কন্টেইনারের সাথে ফিট করার জন্য স্কেল হিসাব
-        const scale = containerWidth / unscaledViewport.width;
-        
-        // ৪. হাই রেজোলিউশন / শার্পনেস ফিক্স (Blur Fix Logic)
-        const outputScale = window.devicePixelRatio || 1;
-        
-        // নতুন স্কেল অনুযায়ী ভিউপোর্ট তৈরি
-        const viewport = page.getViewport({ scale: scale });
+                // ৫. ক্যানভাসের ইন্টারনাল রেজোলিউশন বাড়ানো (High Quality)
+                canvas.width = Math.floor(viewport.width * outputScale);
+                canvas.height = Math.floor(viewport.height * outputScale);
 
-        // ৫. ক্যানভাসের ইন্টারনাল সাইজ বড় করা
-        canvas.width = Math.floor(viewport.width * outputScale);
-        canvas.height = Math.floor(viewport.height * outputScale);
+                // ৬. CSS দিয়ে ডিসপ্লে সাইজ ঠিক রাখা (যাতে স্ক্রিনের বাইরে না যায়)
+                canvas.style.width = Math.floor(viewport.width) + "px";
+                canvas.style.height = Math.floor(viewport.height) + "px";
 
-        // ৬. CSS দিয়ে ভিজ্যুয়াল সাইজ ঠিক রাখা
-        canvas.style.width = Math.floor(viewport.width) + "px";
-        canvas.style.height = Math.floor(viewport.height) + "px";
+                // ৭. রেন্ডার করার সময় স্কেল ট্রান্সফর্ম করা (যাতে ব্লার না হয়)
+                const transform = outputScale !== 1 
+                  ? [outputScale, 0, 0, outputScale, 0, 0] 
+                  : null;
 
-        // ৭. রেন্ডার করার সময় ট্রান্সফর্ম অ্যাপ্লাই করা
-        const transform = outputScale !== 1 
-            ? [outputScale, 0, 0, outputScale, 0, 0] 
-            : null;
-
-        const renderContext = {
-            canvasContext: ctx,
-            transform: transform,
-            viewport: viewport
-        };
-
-        // ৮. রেন্ডার টাস্ক চালানো
-        const renderTask = page.render(renderContext);
-
-        // রেন্ডার শেষ হওয়া পর্যন্ত অপেক্ষা করা
-        await renderTask.promise;
-
-        pageRendering = false;
-        
-        // পেজ নম্বর আপডেট করা (যদি আপনার UI তে থাকে)
-        // document.getElementById('page-num').textContent = num;
-
-        // যদি রেন্ডার চলাকালীন অন্য পেজে যাওয়ার রিকোয়েস্ট এসে থাকে
-        if (pageNumPending !== null) {
-            renderPage(pageNumPending);
-            pageNumPending = null;
-        }
-
-    } catch (error) {
-        console.error("Error rendering page:", error);
-        pageRendering = false;
-    }
+                const renderContext = {
+                    canvasContext: ctx,
+                    transform: transform,
+                    viewport: viewport
+                };
+            
+                
+                const renderTask = page.render(renderContext);
                                    }
-
+renderTask.promise.then(function() {
+                    pageRendering = false;
+                    if (pageNumPending !== null) {
+                        renderPage(pageNumPending);
+                        pageNumPending = null;
+                    }
+                });
+            });
+        document.getElementById('page-num').textContent = `Page ${num}`;
+            document.getElementById('nav-page-num').textContent = num;
         function queueRenderPage(num) { pageRendering ? pageNumPending = num : renderPage(num); }
         function prevPage() { if (pageNum <= 1) return; pageNum--; queueRenderPage(pageNum); }
         function nextPage() { if (pageNum >= pdfDoc.numPages) return; pageNum++; queueRenderPage(pageNum); }
