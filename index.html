@@ -1,424 +1,448 @@
 <!DOCTYPE html>
-<html lang="bn" class="dark">
+<html lang="bn">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>সুরক্ষিত ই-লাইব্রেরি</title>
+    <title>পাঠ্যবই</title>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    animation: { 'fade-in': 'fadeIn 0.5s ease-out' },
-                    keyframes: {
-                        fadeIn: {
-                            '0%': { opacity: '0', transform: 'translateY(10px)' },
-                            '100%': { opacity: '1', transform: 'translateY(0)' },
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <!-- 2. JavaScript অংশ: এটি আপনার স্ক্রিপ্টের শেষে বা </body> ট্যাগের আগে পেস্ট করুন -->
-<script>
-    function jumpToSpecificPage() {
-        // ইনপুট বক্স থেকে নাম্বার নেওয়া
-        const input = document.getElementById('jumpToPageInput');
-        const desiredPage = parseInt(input.value);
-
-        // চেক করা হচ্ছে যে PDF লোড হয়েছে কিনা এবং পেজ নাম্বার সঠিক কিনা
-        // 'pdfDoc' হলো আপনার গ্লোবাল ভেরিয়েবল (যদি নাম ভিন্ন হয় তবে পরিবর্তন করুন)
-        if (typeof pdfDoc !== 'undefined' && pdfDoc) {
-            if (desiredPage >= 1 && desiredPage <= pdfDoc.numPages) {
-                
-                // বর্তমান পেজ নম্বর আপডেট করা (আপনার কোডের ভেরিয়েবলের নাম অনুযায়ী 'pageNum' পরিবর্তন করতে হতে পারে)
-                pageNum = desiredPage;
-
-                // পেজ রেন্ডার ফাংশন কল করা (আপনার ফাংশনের নাম 'renderPage' না হলে এটি পরিবর্তন করুন)
-                renderPage(pageNum); 
-                
-                // ইনপুট ফিল্ড ক্লিয়ার করা (অপশনাল)
-                input.value = '';
-            } else {
-                alert(`অনুগ্রহ করে 1 থেকে ${pdfDoc.numPages} এর মধ্যে একটি নম্বর দিন।`);
-            }
-        } else {
-            console.error("PDF Document not loaded or variable name mismatch.");
-        }
-    }
-</script>
-
-    <!-- Phosphor Icons -->
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-
-    <!-- PDF.js Library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <script>
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    </script>
-
+    
+    <!-- Google Fonts & Custom Styles -->
     <style>
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
-        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-        .no-select { user-select: none; -webkit-user-select: none; }
-        /* ক্যানভাস স্টাইল: সর্বোচ্চ শার্পনেসের জন্য */
-        #pdf-render {
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-            background-color: white;
+        @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Hind Siliguri', sans-serif;
+            background-color: #f8fafc;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .viewer-container::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+        .viewer-container::-webkit-scrollbar-track {
+            background: #374151; 
+        }
+        .viewer-container::-webkit-scrollbar-thumb {
+            background: #6b7280; 
+            border-radius: 5px;
+            border: 2px solid #374151;
+        }
+        .viewer-container::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af; 
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #3b82f6;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
     </style>
 </head>
-<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300 font-sans overflow-hidden selection:bg-blue-500 selection:text-white no-select">
+<body>
+    <div id="root"></div>
 
-    <!-- ================= HOME VIEW ================= -->
-    <div id="home-view" class="flex h-screen w-full relative transition-opacity duration-300">
-        <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 z-30 hidden opacity-0 transition-opacity duration-300 md:hidden" onclick="toggleSidebar(false)"></div>
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
 
-        <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-72 transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
-            <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-                <h1 class="text-2xl font-bold flex items-center gap-2">
-                    <i class="ph-fill ph-book-open-text text-blue-600"></i> ই-লাইব্রেরি
-                </h1>
-                <button onclick="toggleSidebar(false)" class="md:hidden p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"><i class="ph ph-x text-xl"></i></button>
-            </div>
-            <nav class="p-4 space-y-2 flex-1 overflow-y-auto" id="category-list"></nav>
-            <div class="p-4 text-xs text-center border-t border-gray-200 dark:border-gray-700 text-gray-500">বাম দিকে সোয়াইপ করে মেনু বন্ধ করুন</div>
-        </aside>
-
-        <div class="flex-1 flex flex-col h-screen overflow-hidden relative z-0 md:ml-0 w-full">
-            <header class="bg-white dark:bg-gray-800 shadow-sm px-6 py-4 flex justify-between items-center z-20 transition-colors duration-300">
-                <button class="md:hidden p-2 -ml-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors" onclick="toggleSidebar(true)">
-                    <i class="ph ph-list text-2xl text-gray-600 dark:text-gray-200"></i>
-                </button>
-                <div class="flex-1 max-w-xl mx-4 relative">
-                    <i class="ph ph-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-lg"></i>
-                    <input type="text" id="search-input" placeholder="বই খুঁজুন..." class="w-full pl-10 pr-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white placeholder-gray-400" oninput="handleSearch(this.value)">
-                </div>
-                <button onclick="toggleDarkMode()" class="p-2 rounded-full transition-colors transform hover:scale-110 duration-200 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-yellow-400 hover:bg-gray-200 dark:hover:bg-gray-600">
-                    <i id="theme-icon" class="ph-fill ph-sun text-xl"></i>
-                </button>
-            </header>
-
-            <main class="flex-1 overflow-y-auto p-6 scrollbar-hide">
-                <div class="mb-6">
-                    <h2 id="category-title" class="text-xl font-semibold">জনপ্রিয় বইসমূহ</h2>
-                    <p id="book-count" class="text-sm mt-1 text-gray-500 dark:text-gray-400">লোড হচ্ছে...</p>
-                </div>
-                <div id="books-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-20"></div>
-                <div id="empty-state" class="hidden flex-col items-center justify-center h-64 opacity-50">
-                    <i class="ph ph-magnifying-glass text-5xl mb-4"></i>
-                    <p>কোনো বই খুঁজে পাওয়া যায়নি।</p>
-                </div>
-            </main>
-        </div>
-    </div>
-
-    <!-- ================= READER VIEW ================= -->
-    <div id="reader-view" class="fixed inset-0 bg-gray-900 z-50 hidden flex-col h-screen w-full">
-        
-        <!-- Header -->
-        <div id="reader-header" class="absolute top-0 left-0 right-0 z-30 transition-transform duration-300 translate-y-0">
-            <div class="bg-gray-800/95 backdrop-blur text-white px-4 py-3 shadow-lg flex justify-between items-center border-b border-gray-700">
-                <div class="flex items-center gap-3 overflow-hidden">
-                    <button onclick="closeReader()" class="p-2 hover:bg-gray-700 rounded-full transition-colors"><i class="ph ph-caret-left text-xl"></i></button>
-                    <div class="truncate">
-                        <h2 id="reader-title" class="font-semibold text-sm md:text-base truncate">বইয়ের নাম</h2>
-                        <p class="text-xs text-gray-400 flex items-center gap-2">
-                            <span id="page-num">Page 1</span> / <span id="page-count">--</span>
-                        </p>
-                    </div>
-                </div>
-                <div class="flex items-center gap-2 md:gap-4">
-                    <div class="relative">
-                        <button onclick="toggleToc()" class="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded-lg text-sm transition-colors">
-                            <i class="ph ph-list-bullets text-lg"></i>
-                            <span class="hidden sm:inline">সূচিপত্র</span>
-                            <i id="toc-icon" class="ph ph-caret-down text-sm transition-transform duration-200"></i>
-                        </button>
-                        <div id="toc-menu" class="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden z-50 max-h-[60vh] overflow-y-auto hidden">
-                             <div class="p-3 bg-gray-100 dark:bg-gray-900 border-b dark:border-gray-700 font-semibold text-xs uppercase text-gray-500">অধ্যায় নির্বাচন করুন</div>
-                             <div id="toc-list"></div>
-                        </div>
-                    </div>
-                    <button onclick="toggleFullScreen()" class="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-white transition-colors" id="fs-btn"><i id="fs-icon" class="ph ph-corners-out text-lg"></i></button>
-                    <div class="hidden lg:flex items-center gap-2 text-yellow-500 text-xs bg-yellow-500/10 px-3 py-1 rounded-full border border-yellow-500/20">
-                        <i class="ph-fill ph-shield-warning"></i> <span>সুরক্ষিত</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- PDF Render Area -->
-        <div class="flex-1 relative bg-gray-800 flex flex-col items-center pt-14 w-full h-full overflow-hidden"> 
-            <div class="w-full h-full overflow-auto flex justify-center items-start py-4 px-2" id="pdf-container">
-                <div class="relative">
-                    <canvas id="pdf-render" class="max-w-full h-auto border border-gray-700"></canvas>
-        <!-- Watermark -->
-                    <div class="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.05] z-10">
-                        <p class="text-4xl md:text-6xl font-bold rotate-45 text-black select-none">Protected View</p>
-                    </div>
-                    <!-- Loader -->
-                    <div id="loader" class="absolute inset-0 flex items-center justify-center bg-gray-800 z-20">
-                        <i class="ph ph-spinner animate-spin text-4xl text-blue-500"></i>
-                    </div>
-                </div>
-            </div>
-            <!-- Navigation -->
-            <div class="absolute bottom-6 z-30 flex items-center gap-4 bg-gray-800/90 backdrop-blur px-6 py-3 rounded-full shadow-xl border border-gray-700 text-white">
-                <button onclick="prevPage()" class="p-2 hover:bg-gray-700 rounded-full"><i class="ph ph-arrow-left"></i></button>
-                <span class="text-sm font-mono"><span id="nav-page-num">1</span> of <span id="nav-page-count">--</span></span>
-                <button onclick="nextPage()" class="p-2 hover:bg-gray-700 rounded-full"><i class="ph ph-arrow-right"></i></button>
-                <!-- 1. HTML অংশ: যেখানে ইনপুট বক্স এবং বাটন দেখাতে চান সেখানে পেস্ট করুন -->
-<div class="page-jump-controls" style="display: flex; gap: 5px; align-items: center; justify-content: center; margin: 10px 0;">
-    <input type="number" id="jumpToPageInput" placeholder="Page" min="1" 
-           style="background: #ffffff; color: #000000; padding: 5px; width: 60px; border: 1px solid #ddd; border-radius: 4px;">
-    
-    <button onclick="jumpToSpecificPage()" 
-            style="padding: 5px 10px; background-color: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer;">
-        Go
-    </button>
-</div>
-                
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // --- DATA ---
-        const books = [
+        // --- DATA SECTION ---
+        const booksData = [
+        {
+                id: 2,
+                title: "পদার্থবিজ্ঞান - ইসহাক স্যার",
+                category: "পদার্থবিজ্ঞান",
+                cover: "https://placehold.co/300x450/f59e0b/white?text=Ishaq",
+                firstPageUrl: "https://aapathshala.b-cdn.net/Phy%20Academic%20-%201st_compressed/13-Academic%20-%201st.jpg", // সাধারণ ফরম্যাট টেস্ট করার জন্য
+                totalPages: 672,
+                toc: []
+            },
             {
                 id: 1,
-                title: "প্রোগ্রামিং এর হাতেখড়ি",
-                author: "জন ডো",
-                category: "Technology",
-                coverColor: "bg-blue-600",
-                chapters: [ { title: "সূচনা", page: 1 }, { title: "অধ্যায় ১", page: 2 } ],
-                pdfUrl: "https://raw.githubusercontent.com/mozilla/pdf.js/ba2edeae/web/compressed.tracemonkey-pldi-09.pdf" 
+                title: "রসায়ন - গুহ স্যার",
+                category: "রসায়ন",
+                cover: "https://placehold.co/300x450/2563eb/white?text=Guho",
+                // আপনার দেওয়া স্পেসিফিক লিঙ্ক ফরম্যাট
+                firstPageUrl: "https://aapathshala.b-cdn.net/Chem%20Guho%20-%201st_compressed/1-Chem%20Guho%20-%201st.jpg", 
+                totalPages: 936,
+                toc: [
+                    { title: "কভার পেজ", page: 1 },
+                    { title: "সূচিপত্র", page: 3 },
+                    { title: "অধ্যায় ১", page: 5 }
+                ]
             },
-            {
-                id: 2,
-                title: "হিমু এবং এক বিকেলে",
-                author: "হুমায়ূন আহমেদ",
-                category: "Fiction",
-                coverColor: "bg-yellow-600",
-                chapters: [{ title: "শুরু", page: 1 }],
-                pdfUrl: "https://pdfobject.com/pdf/sample.pdf"
-            },
-            {
-                id: 3,
-                title: "জাভাস্ক্রিপ্ট শিখুন",
-                author: "কোডার ভাই",
-                category: "Technology",
-                coverColor: "bg-green-700",
-                chapters: [{ title: "JS কি?", page: 1 }],
-                pdfUrl: "https://raw.githubusercontent.com/mozilla/pdf.js/ba2edeae/web/compressed.tracemonkey-pldi-09.pdf"
-            },
-             {
-                id: 4,
-                title: "মহাকাশের অজানা কথা",
-                author: "বিজ্ঞান ক্লাব",
-                category: "Science",
-                coverColor: "bg-purple-700",
-                chapters: [{ title: "পরমাণু", page: 1 }],
-                pdfUrl: "https://pdfobject.com/pdf/sample.pdf"
-            }
         ];
 
-        const categories = ["All", "Fiction", "Technology", "Science"];
-        
-        // --- STATE ---
-        let currentCategory = "All";
-        let searchQuery = "";
-        let currentBook = null;
-        let isDarkMode = true;
-        let pdfDoc = null;
-        let pageNum = 1;
-        let pageRendering = false;
-        let pageNumPending = null;
+        // --- COMPONENTS ---
 
-        const canvas = document.getElementById('pdf-render');
-        const ctx = canvas.getContext('2d');
+        const Header = ({ onSearch }) => (
+            <header className="bg-white shadow-sm sticky top-0 z-30">
+                <div className="container mx-auto px-4 py-3">
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.location.reload()}>
+                            <div className="bg-blue-600 text-white p-2 rounded-lg">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                            </div>
+                            <span className="text-2xl font-bold text-gray-800 tracking-tight">পাঠ্যবই</span>
+                        </div>
+                        <div className="relative w-full md:w-96">
+                            <input 
+                                type="text" 
+                                placeholder="বই খুঁজুন..." 
+                                onChange={(e) => onSearch(e.target.value)}
+                                className="w-full bg-gray-100 border-none rounded-full py-2 px-5 pl-12 focus:ring-2 focus:ring-blue-500 focus:bg-white transition duration-300"
+                            />
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 absolute left-4 top-2.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                        </div>
+                    </div>
+                </div>
+            </header>
+        );
 
-        // --- DOM ELEMENTS ---
-        const dom = {
-            html: document.documentElement,
-            homeView: document.getElementById('home-view'),
-            readerView: document.getElementById('reader-view'),
-            booksGrid: document.getElementById('books-grid'),
-            categoryList: document.getElementById('category-list'),
-            categoryTitle: document.getElementById('category-title'),
-            bookCount: document.getElementById('book-count'),
-            sidebar: document.getElementById('sidebar'),
-            sidebarOverlay: document.getElementById('sidebar-overlay'),
-            emptyState: document.getElementById('empty-state'),
-            themeIcon: document.getElementById('theme-icon'),
-            readerTitle: document.getElementById('reader-title'),
-            loader: document.getElementById('loader'),
-            tocList: document.getElementById('toc-list'),
-            tocMenu: document.getElementById('toc-menu'),
-            tocIcon: document.getElementById('toc-icon')
+        const Footer = () => (
+            <footer className="bg-gray-900 text-white py-8 mt-auto">
+                <div className="container mx-auto text-center">
+                    <p className="font-medium text-lg mb-2">Made with love by <span className="text-blue-400 font-bold">Yuki Kiyoshi</span></p>
+                    <p className="text-gray-500 text-sm">© ২০২৫ সকল অধিকার সংরক্ষিত</p>
+                </div>
+            </footer>
+        );
+
+        // 3. Immersive Image Viewer
+        const Viewer = ({ firstPageUrl, totalPages, title, onClose, toc }) => {
+            const [pageNum, setPageNum] = useState(1);
+            const [scale, setScale] = useState(1.0); 
+            const [pageInput, setPageInput] = useState("1");
+            const [showTopics, setShowTopics] = useState(false);
+            const [loading, setLoading] = useState(true);
+            const [error, setError] = useState(false);
+            const [showUI, setShowUI] = useState(true);
+
+            // --- URL GENERATION LOGIC ---
+            const getPageUrl = (baseUrl, page) => {
+                try {
+                    // URL কে '/' দিয়ে ভাগ করে ফাইলের নাম আলাদা করি
+                    const parts = baseUrl.split('/');
+                    const fileName = parts.pop(); // যেমন: "1-Chem Guho - 1st.jpg"
+                    const path = parts.join('/'); // বাকি অংশ
+
+                    // 1. আপনার স্পেসিফিক লজিক: ফাইলের নামের শুরুতে যদি সংখ্যা থাকে (যেমন: "1-Chem...")
+                    // রেজেক্স: ^(\d+) মানে শুরুতে থাকা সংখ্যাগুলো
+                    if (/^\d+/.test(fileName)) {
+                        const newFileName = fileName.replace(/^\d+/, page);
+                        return `${path}/${newFileName}`;
+                    }
+
+                    // 2. সাধারণ ফলব্যাক: যদি লিঙ্কের শেষে সংখ্যা থাকে (যেমন image1.jpg)
+                    const filePattern = /(\d+)(\.(?:jpg|jpeg|png|webp))$/i;
+                    if (filePattern.test(baseUrl)) {
+                        return baseUrl.replace(filePattern, (match, number, ext) => {
+                            return page + ext;
+                        });
+                    }
+                    
+                    // 3. ডেমো প্লেসহোল্ডার
+                    if (baseUrl.includes('text=')) {
+                        return baseUrl.replace(/text=.*?-(\d+)/, `text=Page-${page}`)
+                                      .replace(/text=.*?(\d+)$/, `text=${page}`);
+                    }
+
+                    // ডিফল্ট: পুরো লিঙ্কে কোথাও সংখ্যা থাকলে রিপ্লেস করবে
+                    return baseUrl.replace(/\d+/, page);
+                } catch (e) {
+                    console.error("URL parsing error", e);
+                    return baseUrl;
+                }
+            };
+
+            const currentImageUrl = getPageUrl(firstPageUrl, pageNum);
+
+            // পেজ চেঞ্জ হলে লোডিং স্টেট রিসেট এবং এরর ক্লিয়ার করি
+            useEffect(() => {
+                setLoading(true);
+                setError(false);
+            }, [pageNum]);
+
+            const handleImageLoad = () => {
+                setLoading(false);
+                setError(false);
+            };
+
+            const handleImageError = () => {
+                setLoading(false);
+                setError(true);
+            };
+
+            const changePage = (offset) => {
+                const newPage = Math.min(Math.max(1, pageNum + offset), totalPages);
+                setPageNum(newPage);
+                setPageInput(newPage.toString());
+            };
+
+            const handleZoom = (delta) => {
+                setScale(prev => Math.min(Math.max(0.5, prev + delta), 4.0));
+            };
+
+            const handlePageInput = (e) => {
+                if (e.key === 'Enter') {
+                    const p = parseInt(pageInput);
+                    if (p >= 1 && p <= totalPages) {
+                        setPageNum(p);
+                    } else {
+                        setPageInput(pageNum.toString());
+                    }
+                }
+            };
+
+            const handleTocClick = (page) => {
+                if (page >= 1 && page <= totalPages) {
+                    setPageNum(page);
+                    setPageInput(page.toString());
+                }
+                setShowTopics(false);
+            };
+
+            return (
+                <div className="fixed inset-0 z-50 bg-gray-900 flex flex-col h-screen animate-fade-in">
+                    
+                    {/* Top Control Bar */}
+                    {showUI && (
+                        <div className="bg-gray-800 text-white px-4 py-3 flex justify-between items-center shadow-lg shrink-0 z-50 transition-all duration-300">
+                            <div className="flex items-center gap-4">
+                                <button 
+                                    onClick={() => setShowTopics(!showTopics)}
+                                    className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded transition relative"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" /></svg>
+                                    <span className="hidden md:inline text-sm">Topics</span>
+                                    {toc && toc.length > 0 && (
+                                        <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                                            <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
+                                        </span>
+                                    )}
+                                </button>
+                                <h2 className="font-medium text-lg truncate max-w-[150px] md:max-w-md text-gray-200">{title}</h2>
+                            </div>
+
+                            <div className="hidden md:flex items-center bg-gray-700 rounded-lg mx-4">
+                                <button onClick={() => handleZoom(-0.2)} className="px-3 py-1 hover:text-blue-400 font-bold">-</button>
+                                <span className="text-xs px-2 border-x border-gray-600">{Math.round(scale * 100)}%</span>
+                                <button onClick={() => handleZoom(0.2)} className="px-3 py-1 hover:text-blue-400 font-bold">+</button>
+                            </div>
+
+                            <button onClick={onClose} className="bg-red-500 hover:bg-red-600 text-white px-4 py-1.5 rounded text-sm transition font-medium">
+                                বন্ধ করুন
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Main Viewing Area */}
+                    <div 
+                        className="flex-1 overflow-auto bg-gray-600 flex relative viewer-container"
+                        onClick={() => setShowUI(prev => !prev)}
+                    >
+                        {/* Sidebar (TOC) */}
+                        {showTopics && (
+                            <div 
+                                className="absolute top-0 left-0 h-full w-72 bg-white shadow-2xl z-50 flex flex-col border-r"
+                                onClick={(e) => e.stopPropagation()} 
+                            >
+                                <div className="p-4 border-b flex justify-between items-center bg-gray-50">
+                                    <h3 className="font-bold text-gray-700">সূচিপত্র</h3>
+                                    <button onClick={() => setShowTopics(false)} className="text-gray-400 hover:text-red-500">✕</button>
+                                </div>
+                                <div className="overflow-y-auto p-2 flex-1">
+                                    <ul className="space-y-1">
+                                        {toc && toc.length > 0 ? (
+                                            toc.map((item, index) => (
+                                                <li 
+                                                    key={index} 
+                                                    className="group flex justify-between items-center p-2.5 hover:bg-blue-50 rounded-lg cursor-pointer transition text-sm text-gray-700 border-b border-gray-50 last:border-0" 
+                                                    onClick={() => handleTocClick(item.page)}
+                                                >
+                                                    <span className="font-medium group-hover:text-blue-600">{item.title}</span>
+                                                    <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full group-hover:bg-blue-100 group-hover:text-blue-600">p.{item.page}</span>
+                                                </li>
+                                            ))
+                                        ) : (
+                                            <li className="text-center text-gray-400 mt-10 text-sm italic p-4">
+                                                কোনো সূচিপত্র নেই
+                                            </li>
+                                        )}
+                                    </ul>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Image Display Area */}
+                        <div className="flex-1 flex justify-center min-h-full p-4 relative">
+                            {loading && !error && (
+                                <div className="absolute inset-0 flex items-center justify-center z-10">
+                                    <div className="spinner"></div>
+                                </div>
+                            )}
+
+                            {error ? (
+                                <div className="flex flex-col items-center justify-center text-white h-full space-y-4 animate-fade-in">
+                                    <div className="bg-red-500/20 p-6 rounded-full">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                        </svg>
+                                    </div>
+                                    <h3 className="text-xl font-bold text-gray-200">সার্ভারে পৃষ্ঠাটি পাওয়া যায়নি</h3>
+                                    <p className="text-gray-400">অনুগ্রহ করে ইন্টারনেট সংযোগ পরীক্ষা করুন অথবা পরে চেষ্টা করুন</p>
+                                    <button 
+                                        onClick={() => { setError(false); setLoading(true); const src = currentImageUrl; }} // Retry simulation
+                                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm transition"
+                                    >
+                                        পুনরায় চেষ্টা করুন
+                                    </button>
+                                </div>
+                            ) : (
+                                <img 
+                                    src={currentImageUrl}
+                                    alt={`Page ${pageNum}`}
+                                    onLoad={handleImageLoad}
+                                    onError={handleImageError}
+                                    style={{ 
+                                        transform: `scale(${scale})`,
+                                        transformOrigin: 'top center',
+                                        transition: 'transform 0.2s ease-out'
+                                    }}
+                                    className={`shadow-2xl bg-white object-contain max-w-full h-auto self-start ${loading ? 'opacity-0' : 'opacity-100'}`}
+                                />
+                            )}
+                        </div>
+ 
+                    </div>                                                                        
+
+                    {/* Bottom Navigation Bar */}
+                    {showUI && (
+                        <div className="bg-white px-4 py-3 border-t flex justify-center items-center gap-6 shrink-0 shadow-[-1px_-4px_10px_rgba(0,0,0,0.1)] z-50 transition-all duration-300">
+                            <button onClick={() => changePage(-1)} disabled={pageNum <= 1} className="p-2 rounded-full hover:bg-gray-100 disabled:opacity-30 transition">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                            </button>
+
+                            <div className="flex items-center gap-3 bg-gray-100 px-4 py-1.5 rounded-full">
+                                <input 
+                                    type="number" 
+                                    value={pageInput}
+                                    onChange={(e) => setPageInput(e.target.value)}
+                                    onKeyDown={handlePageInput}
+                                    className="w-12 bg-transparent text-center font-bold text-gray-800 outline-none border-b-2 border-gray-300 focus:border-blue-500"
+                                />
+                                <span className="text-gray-500 text-sm">of {totalPages}</span>
+                            </div>
+
+                            <button onClick={() => changePage(1)} disabled={pageNum >= totalPages} className="p-2 rounded-full hover:bg-gray-100 disabled:opacity-30 transition">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                            </button>
+                        </div>
+                    )}
+                </div>
+            );
         };
 
-        // --- INIT ---
-        function init() {
-            renderCategories();
-            renderBooks();
-            setupSecurity();
-            setupSwipe();
-            updateThemeIcon();
-        }
+        const App = () => {
+            const [searchTerm, setSearchTerm] = useState("");
+            const [selectedBook, setSelectedBook] = useState(null);
 
-        function renderCategories() {
-            dom.categoryList.innerHTML = `<h2 class="text-xs font-semibold uppercase tracking-wider mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}">ক্যাটাগরি সমূহ</h2>`;
-            categories.forEach(cat => {
-                const btn = document.createElement('button');
-                btn.className = `w-full text-left px-4 py-3 rounded-lg transition-all duration-200 mb-1 ${currentCategory === cat ? 'bg-blue-600 text-white font-medium shadow-md translate-x-1' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`;
-                btn.textContent = cat === 'All' ? 'সকল বই' : cat;
-                btn.onclick = () => { currentCategory = cat; toggleSidebar(false); renderCategories(); renderBooks(); };
-                dom.categoryList.appendChild(btn);
-            });
-        }
+            const filteredBooks = booksData.filter(book => 
+                book.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                book.category.toLowerCase().includes(searchTerm.toLowerCase())
+            );
 
-        function renderBooks() {
-            dom.booksGrid.innerHTML = '';
-            const filtered = books.filter(b => (currentCategory === "All" || b.category === currentCategory) && (b.title.toLowerCase().includes(searchQuery.toLowerCase()) || b.author.toLowerCase().includes(searchQuery.toLowerCase())));
-            dom.categoryTitle.textContent = currentCategory === 'All' ? 'জনপ্রিয় বইসমূহ' : `${currentCategory} এর বইসমূহ`;
-            dom.bookCount.textContent = `মোট ${filtered.length} টি বই পাওয়া গেছে`;
-            
-            if (filtered.length === 0) { dom.emptyState.classList.remove('hidden'); dom.emptyState.classList.add('flex'); return; }
-            else { dom.emptyState.classList.add('hidden'); dom.emptyState.classList.remove('flex'); }
-
-            filtered.forEach((book, index) => {
-                const card = document.createElement('div');
-                card.className = `group rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 overflow-hidden border flex flex-col animate-fade-in bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700`;
-                card.style.animationDelay = `${index * 100}ms`;
-                card.innerHTML = `
-                    <div class="h-48 w-full ${book.coverColor} flex flex-col items-center justify-center relative cursor-pointer overflow-hidden p-4 text-center" onclick="openReader(${book.id})">
-                        <div class="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors duration-300"></div>
-                        <h3 class="relative z-10 text-white font-bold text-lg mb-3 line-clamp-2 leading-tight drop-shadow-md">${book.title}</h3>
-                        <div class="relative z-10 bg-white/20 backdrop-blur-sm border border-white/50 text-white px-4 py-1.5 rounded-full text-sm font-medium group-hover:bg-white group-hover:text-gray-900 transition-all duration-300 shadow-sm flex items-center gap-2">
-                            <i class="ph-bold ph-book-open"></i> ওপেন করুন
-                        </div>
-                    </div>
-                    <div class="p-4 flex-1 flex flex-col justify-between">
-                        <div>
-                            <div class="flex justify-between items-center mb-2">
-                                <span class="text-xs text-blue-500 font-semibold uppercase bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded">${book.category}</span>
-                            </div>
-                            <p class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1"><i class="ph-fill ph-user"></i> ${book.author}</p>
-                        </div>
-                    </div>
-                `;
-                dom.booksGrid.appendChild(card);
-            });
-        }
-
-        // --- PDF RENDER LOGIC (HIGH RES FIX) ---
-        function openReader(bookId) {
-            const book = books.find(b => b.id === bookId);
-            if (!book) return;
-            currentBook = book;
-            
-            dom.readerTitle.textContent = book.title;
-            dom.homeView.classList.add('hidden');
-            dom.readerView.classList.remove('hidden');
-            dom.readerView.classList.add('flex');
-            dom.loader.classList.remove('hidden');
-
-            dom.tocList.innerHTML = '';
-            book.chapters.forEach(chap => {
-                const btn = document.createElement('button');
-                btn.className = "w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm text-gray-800 dark:text-gray-200 border-b border-gray-100 dark:border-gray-700 last:border-0 flex justify-between";
-                btn.innerHTML = `<span>${chap.title}</span><span class="text-xs text-gray-400 bg-gray-200 dark:bg-gray-900 px-2 py-0.5 rounded">P. ${chap.page}</span>`;
-                btn.onclick = () => { queueRenderPage(chap.page); toggleToc(); };
-                dom.tocList.appendChild(btn);
+            const categories = {};
+            filteredBooks.forEach(book => {
+                if (!categories[book.category]) categories[book.category] = [];
+                categories[book.category].push(book);
             });
 
-            pdfjsLib.getDocument(book.pdfUrl).promise.then(function(pdfDoc_) {
-                pdfDoc = pdfDoc_;
-                document.getElementById('page-count').textContent = pdfDoc.numPages;
-                document.getElementById('nav-page-count').textContent = pdfDoc.numPages;
-                pageNum = 1;
-                renderPage(pageNum);
-                dom.loader.classList.add('hidden');
-            }).catch(function(error) {
-                console.error('Error loading PDF:', error);
-                dom.loader.classList.add('hidden');
-                alert("PDF লোড করা যাচ্ছে না।");
-            });
-        }
-        function renderPage(num) {
-            pageRendering = true;
-            pdfDoc.getPage(num).then(function(page) {
-                const container = document.getElementById('pdf-container');
-                // কন্টেইনারের আসল প্রস্থ বের করা (প্যাডিং বাদ দিয়ে)
-                const containerWidth = container.clientWidth - 30; 
-                
-                // ১. পেজের ডিফল্ট ভিউপোর্ট নেওয়া
-                const unscaledViewport = page.getViewport({scale: 1});
-                // ২. কন্টেইনারের সাথে ফিট করার জন্য স্কেল হিসাব করা
-                const scale = containerWidth / unscaledViewport.width;
+            return (
+                <div className="min-h-screen flex flex-col">
+                    {selectedBook ? (
+                        <Viewer 
+                            firstPageUrl={selectedBook.firstPageUrl}
+                            totalPages={selectedBook.totalPages} 
+                            title={selectedBook.title}
+                            toc={selectedBook.toc} 
+                            onClose={() => setSelectedBook(null)}
+                        />
+                    ) : (
+                        <>
+                            <Header onSearch={setSearchTerm} />
+                            
+                            <main className="flex-grow container mx-auto px-4 py-8">
+                                {Object.keys(categories).length === 0 ? (
+                                    <div className="text-center py-20 text-gray-400">
+                                        <p className="text-xl">কোনো বই পাওয়া যায়নি 😔</p>
+                                    </div>
+                                ) : (
+                                    Object.entries(categories).map(([category, books]) => (
+                                        <section key={category} className="mb-12">
+                                            <div className="flex items-center gap-3 mb-6 border-b pb-3 border-gray-200">
+                                                <h3 className="text-2xl font-bold text-gray-800">{category}</h3>
+                                                <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">{books.length}</span>
+                                            </div>
+                                            
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                                                {books.map(book => (
+                                                    <div 
+                                                        key={book.id} 
+                                                        onClick={() => setSelectedBook(book)}
+                                                        className="group cursor-pointer bg-white rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col overflow-hidden"
+                                                    >
+                                                        <div className="relative overflow-hidden aspect-[2/3] bg-gray-200">
+                                                            <img src={book.cover} alt={book.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                                                                <span className="bg-white/90 text-gray-900 px-4 py-2 rounded-full font-medium text-sm transform scale-0 group-hover:scale-100 transition-transform shadow-lg">পড়ুন</span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="p-3">
+                                                            <h4 className="font-bold text-gray-800 text-sm md:text-base line-clamp-2 leading-tight group-hover:text-blue-600 transition-colors">{book.title}</h4>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </section>
+                                    ))
+                                )}
+                            </main>
+                            <Footer />
+                        </>
+                    )}
+                </div>
+            );
+        };
 
-                // ৩. High DPI বা Retina স্ক্রিনের জন্য পিক্সেল রেশিও চেক করা
-                const outputScale = window.devicePixelRatio || 1;
-
-                // ৪. আসল ভিউপোর্ট তৈরি করা (স্কেল অনুযায়ী)
-                const viewport = page.getViewport({scale: scale});
-
-                // ৫. ক্যানভাসের ইন্টারনাল রেজোলিউশন বাড়ানো (High Quality)
-                canvas.width = Math.floor(viewport.width * outputScale);
-                canvas.height = Math.floor(viewport.height * outputScale);
-
-                // ৬. CSS দিয়ে ডিসপ্লে সাইজ ঠিক রাখা (যাতে স্ক্রিনের বাইরে না যায়)
-                canvas.style.width = Math.floor(viewport.width) + "px";
-                canvas.style.height = Math.floor(viewport.height) + "px";
-
-                // ৭. রেন্ডার করার সময় স্কেল ট্রান্সফর্ম করা (যাতে ব্লার না হয়)
-                const transform = outputScale !== 1 
-                  ? [outputScale, 0, 0, outputScale, 0, 0] 
-                  : null;
-
-                const renderContext = {
-                    canvasContext: ctx,
-                    transform: transform,
-                    viewport: viewport
-                };
-            
-                
-                const renderTask = page.render(renderContext);
-                                   }
-renderTask.promise.then(function() {
-                    pageRendering = false;
-                    if (pageNumPending !== null) {
-                        renderPage(pageNumPending);
-                        pageNumPending = null;
-                    }
-                });
-            });
-        document.getElementById('page-num').textContent = `Page ${num}`;
-            document.getElementById('nav-page-num').textContent = num;
-        function queueRenderPage(num) { pageRendering ? pageNumPending = num : renderPage(num); }
-        function prevPage() { if (pageNum <= 1) return; pageNum--; queueRenderPage(pageNum); }
-        function nextPage() { if (pageNum >= pdfDoc.numPages) return; pageNum++; queueRenderPage(pageNum); }
-        function closeReader() { dom.readerView.classList.add('hidden'); dom.readerView.classList.remove('flex'); dom.homeView.classList.remove('hidden'); pdfDoc = null; ctx.clearRect(0, 0, canvas.width, canvas.height); }
-        function handleSearch(val) { searchQuery = val; renderBooks(); }
-        function toggleSidebar(show) { isSidebarOpen = show; dom.sidebar.classList.toggle('-translate-x-full', !show); dom.sidebarOverlay.classList.toggle('hidden', !show); setTimeout(() => dom.sidebarOverlay.classList.toggle('opacity-0', !show), 10); }
-        function toggleDarkMode() { isDarkMode = !isDarkMode; dom.html.classList.toggle('dark', isDarkMode); updateThemeIcon(); renderCategories(); }
-        function updateThemeIcon() { dom.themeIcon.className = isDarkMode ? 'ph-fill ph-sun text-xl' : 'ph-fill ph-moon text-xl'; }
-        function toggleToc() { dom.tocMenu.classList.toggle('hidden'); dom.tocIcon.classList.toggle('rotate-180'); }
-        function toggleFullScreen() { if (!document.fullscreenElement) dom.readerView.requestFullscreen().catch(e=>alert(e)); else document.exitFullscreen(); }
-        
-        function setupSecurity() {
-            document.addEventListener('contextmenu', e => e.preventDefault());
-            document.addEventListener('keydown', e => { if ((e.ctrlKey && ['p', 's', 'u'].includes(e.key)) || e.key === 'F12') e.preventDefault(); });
-        }
-        let touchStartX = 0;
-        function setupSwipe() { dom.sidebar.addEventListener('touchstart', e => touchStartX = e.changedTouches[0].screenX); dom.sidebar.addEventListener('touchend', e => { if (touchStartX - e.changedTouches[0].screenX > 50) toggleSidebar(false); }); }
-
-        init();
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
 </body>
 </html>
+
 
